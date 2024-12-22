@@ -44,11 +44,11 @@ export class BookmarkService {
       },
     });
 
+    //check if the bookmark exists
     if (!bookmark || bookmark.userId !== userId) {
       throw new ForbiddenException(
         'You are not allowed to update this bookmark',
       );
-      //check if the bookmark exists
     }
 
     return this.prisma.bookmark.update({

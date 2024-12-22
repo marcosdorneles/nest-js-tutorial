@@ -11,10 +11,10 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
-    private configService: ConfigService,
+    private config: ConfigService,
   ) {}
 
-  async singup(dto: AuthDto) {
+  async signup(dto: AuthDto) {
     try {
       //generate the password hash
       const hash = await argon.hash(dto.password);
@@ -26,17 +26,18 @@ export class AuthService {
         },
       });
       //return saved user
-      return user;
+      return this.signToken(user.id, user.email);
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new ForbiddenException('User already exists');
         }
       }
+      throw error;
     }
   }
 
-  async singin(dto: AuthDto) {
+  async signin(dto: AuthDto) {
     //find user by email
     const user = await this.prisma.user.findUnique({
       where: {
@@ -58,16 +59,18 @@ export class AuthService {
 
     //return the user
 
-    return this.singInToken(user.id, user.email);
+    return this.signToken(user.id, user.email);
   }
 
-  async singInToken(
+  async signToken(
     userId: number,
     email: string,
   ): Promise<{ access_token: string }> {
-    //generate a token for the user
-    const payload = { sub: userId, email };
-    const secret = this.configService.get('JWT_SECRET');
+    const payload = {
+      sub: userId,
+      email,
+    };
+    const secret = this.config.get('JWT_SECRET');
 
     const token = await this.jwt.signAsync(payload, {
       expiresIn: '15m',
